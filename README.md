@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AasaMedChem — B2B Chemical & Pharmaceutical Procurement Platform
 
-## Getting Started
+AasaMedChem is a production-ready, pharma-grade B2B procurement platform designed for managing chemical inventory, RFQ (Request for Quotation) workflows, and order conversion with high precision.
 
-First, run the development server:
+## 🚀 Key Features
 
+### 1. High-Precision Inventory & Units
+* **Pharma-Grade Unit Conversion**: Supports multi-unit queries (e.g. buyer requests in kilograms or liters; inventory is managed internally in milligrams or microliters to ensure absolute precision and prevent floating-point errors).
+* **Live Unit Converter & Price Estimator**: Real-time conversion and cost calculation on product pages.
+* **Auto-Conversion to Base Storage Unit**: Translates commercial display units (`kg`, `g`, `L`, `mL`) to base database storage units (`mg`, `ul`) on order/quote submission.
+
+### 2. Role-Based Access Control & Dashboards
+* **Admin Dashboard**: Comprehensive platform health statistics, user activate/deactivate controls, global products/quotations/orders monitor, and detailed system-wide audit logs.
+* **Seller Dashboard**: Complete product inventory management, incoming quotation/price negotiation handler, and status-progression order fulfillment system.
+* **Buyer Dashboard**: Detailed chemical/pharma catalog browsing, multi-item quotation request builder, quotation-to-order converter, and order tracking.
+
+### 3. Secure B2B Quotation Workflow
+* **RFQ Builder**: Support for multi-item RFQs with custom specifications.
+* **Price Negotiation**: Sellers can accept and reply with custom unit prices.
+* **Order Conversion**: Buyers can accept quotes and instantly convert them to formal orders, which automatically reserves stock in inventory.
+
+### 4. Enterprise Audit Trail
+* **Action Logs**: Comprehensive, immutable logs recording actions (`CREATE`, `UPDATE`, `DELETE`, `CONVERT_TO_ORDER`), target entities, timestamp, user, and previous vs. new values for total transparency.
+
+---
+
+## 🛠️ Technology Stack
+
+* **Framework**: Next.js 16.2.7 (App Router with async params, custom proxy routing)
+* **Database**: PostgreSQL (Prisma v7 ORM)
+* **Styling**: Tailwind CSS v4 (Custom dark pharmaceutical theme)
+* **Auth**: NextAuth.js v5 (Beta)
+* **Math Library**: `decimal.js` (Fixed-point high-precision arithmetic)
+
+---
+
+## 💻 Local Setup & Installation
+
+### 1. Clone & Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Environment Variables
+Create a `.env` file in the root directory:
+```env
+DATABASE_URL="postgresql://username:password@localhost:5402/aasamedchem?schema=public"
+NEXTAUTH_SECRET="a-very-secure-random-secret-key-32-chars-long"
+NEXTAUTH_URL="http://localhost:3000"
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Run Prisma Migrations
+Apply database migrations to set up schema structure:
+```bash
+npx prisma migrate dev --name init
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Seed the Database
+Seed the database with default accounts, chemical products, and initial audit logs:
+```bash
+npx prisma db seed
+```
 
-## Learn More
+### 5. Start Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔐 Demo Credentials
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Role | Email | Password |
+|---|---|---|
+| **Admin** | `admin@aasamedchem.com` | `admin123` |
+| **Seller** | `seller@aasamedchem.com` | `seller123` |
+| **Buyer** | `buyer@aasamedchem.com` | `buyer123` |
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📐 Architecture Details
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Base Unit Configuration
+* All mass/weight values are stored internally in **milligrams (mg)**.
+* All volume values are stored internally in **microliters (µL)**.
+* Discrete items are stored in **units**.
+* All prices are stored in **paise (INR)** as `BigInt` to prevent rounding errors.
+
+### Next.js 16 Route Protection
+Instead of traditional `middleware.ts`, route validation is performed by the Next.js 16 **`proxy.ts`** runtime, enforcing secure routing rules on `/dashboard/*` sub-routes based on the JWT token session data.
+# Aasa_Med_Chem
