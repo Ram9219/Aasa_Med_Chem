@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  SELLER
+  BUYER
+}
+
+enum StorageUnit {
+  mg
+  ul
+  unit
+}
+
+enum DisplayUnit {
+  mg
+  g
+  kg
+  ul
+  mL
+  L
+  unit
+}
+
+enum QuotationStatus {
+  DRAFT
+  SUBMITTED
+  REVIEWED
+  SELLER_QUOTED
+  BUYER_ACCEPTED
+  REJECTED
+  EXPIRED
+  CONVERTED_TO_ORDER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  REFUNDED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  companyName  String?
+  fullName     String
+  phone        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  products          Product[]          @relation("SellerProducts")
+  quotationRequests QuotationRequest[] @relation("BuyerQuotations")
+  sellerQuotations  QuotationRequest[] @relation("SellerQuotations")
+  auditLogs         AuditLog[]
+  orders            Order[]            @relation("BuyerOrders")
+}
+
+model Product {
+  id          String  @id @default(uuid())
+  name        String
+  casNumber   String?
+  sku         String  @unique
+  category    String
+  description String?
+
+  chemicalName      String?
+  molecularFormula  String?
+  molecularWeight   Decimal?  @db.Decimal(10, 4)
+  purity            Decimal?  @db.Decimal(5, 2)
+  grade             String?
+  manufacturer      String?
+  batchNumber       String?
+  expiryDate        DateTime?
+  storageConditions String?
+  hazardClass       String?
+
+  storageUnit   StorageUnit
+  stockQuantity Decimal     @db.Decimal(30, 12)
+  minStockLevel Decimal     @default(0) @db.Decimal(30, 12)
+
+  ratePerUnit Decimal @db.Decimal(30, 12)
+  currency    String  @default("INR")
+
+  isActive Boolean @default(true)
+  sellerId String
+  seller   User    @relation("SellerProducts", fields: [sellerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quotationItems QuotationItem[]
+  orderItems     OrderItem[]
+  auditLogs      AuditLog[]
+
+  @@index([sellerId])
+  @@index([category])
+  @@index([casNumber])
+  @@index([sku])
+}
+
+model QuotationRequest {
+  id              String  @id @default(uuid())
+  quotationNumber String  @unique
+  buyerId         String
+  buyer           User    @relation("BuyerQuotations", fields: [buyerId], references: [id])
+  sellerId        String?
+  seller          User?   @relation("SellerQuotations", fields: [sellerId], references: [id])
+
+  status QuotationStatus @default(DRAFT)
+
+  subtotalPaise  BigInt?
+  taxRate        Decimal? @db.Decimal(5, 2)
+  taxAmountPaise BigInt?
+  totalPaise     BigInt?
+
+  notes      String?
+  adminNotes String?
+
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+  validUntil  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items QuotationItem[]
+  order Order?          @relation
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+}
+
+model QuotationItem {
+  id          String           @id @default(uuid())
+  quotationId String
+  quotation   QuotationRequest @relation(fields: [quotationId], references: [id])
+  productId   String
+  product     Product          @relation(fields: [productId], references: [id])
+
+  requestedQuantity Decimal     @db.Decimal(30, 12)
+  requestedUnit     DisplayUnit
+
+  storageQuantity Decimal     @db.Decimal(30, 12)
+  storageUnit     StorageUnit
+
+  unitPricePaise  BigInt
+  totalPricePaise BigInt
+
+  sellerUnitPricePaise BigInt?
+  sellerTotalPaise     BigInt?
+
+  createdAt DateTime @default(now())
+
+  @@index([quotationId])
+  @@index([productId])
+}
+
+model Order {
+  id          String           @id @default(uuid())
+  orderNumber String           @unique
+  quotationId String           @unique
+  quotation   QuotationRequest @relation(fields: [quotationId], references: [id])
+  buyerId     String
+  buyer       User             @relation("BuyerOrders", fields: [buyerId], references: [id])
+
+  status OrderStatus @default(PENDING)
+
+  subtotalPaise  BigInt
+  taxAmountPaise BigInt
+  totalPaise     BigInt
+
+  paymentStatus PaymentStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items     OrderItem[]
+  auditLogs AuditLog[]
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity        Decimal     @db.Decimal(30, 12)
+  unit            StorageUnit
+  unitPricePaise  BigInt
+  totalPricePaise BigInt
+
+  @@index([orderId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  product   Product? @relation(fields: [productId], references: [id])
+  productId String?
+  order     Order?   @relation(fields: [orderId], references: [id])
+  orderId   String?
+
+  @@index([userId])
+  @@index([entity, entityId])
+}
