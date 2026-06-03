@@ -90,3 +90,4 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Next.js 16 Route Protection
 Instead of traditional `middleware.ts`, route validation is performed by the Next.js 16 **`proxy.ts`** runtime, enforcing secure routing rules on `/dashboard/*` sub-routes based on the JWT token session data.
 # Aasa_Med_Chem
+# Aasa_Med_Chem
